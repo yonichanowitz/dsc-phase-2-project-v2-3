@@ -1,285 +1,473 @@
-# Phase 2 Project Description
+# What's in this project?
 
-Another module down - you're almost half way there!
+* README what you are reading now
+* DATA . the kings county housing data of houses in kings county Seattle
+* final.ipynb a Jupyter notebook of the steps taken to get the results below
+* presentation.pdf a PDF with a PowerPoint presentation to be shown to theoretical shareholders
 
-![awesome](https://raw.githubusercontent.com/learn-co-curriculum/dsc-phase-2-project-v2-3/main/halfway-there.gif)
 
-All that remains in Phase 2 is to put your newfound data science skills to use with a large project!
+# what makes a house price go up?
 
-In this project description, we will cover:
+which factor/factors of a houses location, or structure is the biggest determining factor?
 
-* Project Overview: the project goal, audience, and dataset
-* Deliverables: the specific items you are required to produce for this project
-* Grading: how your project will be scored
-* Getting Started: guidance for how to begin working
+i assume it's bathrooms, but that's completely subjective opinion.
+let's see what the data says
 
-## Project Overview
 
-For this project, you will use multiple linear regression modeling to analyze house sales in a northwestern county.
+# inspect the data
 
-### Business Problem
 
-It is up to you to define a stakeholder and business problem appropriate to this dataset.
+at least *two* of the columns have null values that need to be filled with some value, *six* are objects, which need to be made into numerical columns
+lets look at what the data values could be with .head()
 
-If you are struggling to define a stakeholder, we recommend you complete a project for a real estate agency that helps homeowners buy and/or sell homes. A business problem you could focus on for this stakeholder is the need to provide advice to homeowners about how home renovations might increase the estimated value of their homes, and by what amount.
 
-### The Data
+homes['condition'].head()
 
-This project uses the King County House Sales dataset, which can be found in  `kc_house_data.csv` in the data folder in this assignment's GitHub repository. The description of the column names can be found in `column_names.md` in the same folder. As with most real world data sets, the column names are not perfectly described, so you'll have to do some research or use your best judgment if you have questions about what the data means.
+homes['condition'].unique()
 
-It is up to you to decide what data from this dataset to use and how to use it. If you are feeling overwhelmed or behind, we recommend you **ignore** some or all of the following features:
+### a few of the columns are objects. lets make them int64, or label encode them later
 
-* `date`
-* `view`
-* `sqft_above`
-* `sqft_basement`
-* `yr_renovated`
-* `zipcode`
-* `lat`
-* `long`
-* `sqft_living15`
-* `sqft_lot15`
+especially sqft_basement
 
-### Key Points
+homes['sqft_basement'].unique
 
-* **Your goal in regression modeling is to yield findings to support relevant recommendations. Those findings should include a metric describing overall model performance as well as at least two regression model coefficients.** As you explore the data and refine your stakeholder and business problem definitions, make sure you are also thinking about how a linear regression model adds value to your analysis. "The assignment was to use linear regression" is not an acceptable answer! You can also use additional statistical techniques other than linear regression, so long as you clearly explain why you are using each technique.
+homes['sqft_basement'] = homes['sqft_basement'].str.replace('?', '0').astype(np.float64)
 
-* **You should demonstrate an iterative approach to modeling.** This means that you must build multiple models. Begin with a basic model, evaluate it, and then provide justification for and proceed to a new model. After you finish refining your models, you should provide 1-3 paragraphs in the notebook discussing your final model.
 
-* **Data visualization and analysis are no longer explicit project requirements, but they are still very important.** In Phase 1, your project stopped earlier in the CRISP-DM process. Now you are going a step further, to modeling. Data visualization and analysis will help you build better models and tell a better story to your stakeholders.
+homes['sqft_basement'].unique
 
-## Deliverables
+waterfront, view, condition, grade, yr_built, yr_renovated, and zipcode are **categorical**. i'm not sure which ones i will use, but i think i'll use LabelEncoding to make them usable
 
-There are three deliverables for this project:
+#### zipcode is categorical
+but it's too many. Morgan gave me the great idea of sepperating the zip codes by county and making binary columns
 
-* A **non-technical presentation**
-* A **Jupyter Notebook**
-* A **GitHub repository**
+homes['zipcode']
 
-The deliverables requirements are almost the same as in the Phase 1 Project, and you can review those extended descriptions [here](https://github.com/learn-co-curriculum/dsc-phase-1-project-v2-3#deliverables). In general, everything is the same except the "Data Visualization" and "Data Analysis" requirements have been replaced by "Modeling" and "Regression Results" requirements.
+# cleaning
 
-### Non-Technical Presentation
+### cleaning steps
+i will be dropping longitude and latitude
+'date' is date sold. i need two columns , one the time between year build and date sold, another the time between date renovated and date sold
+1) drop 'id' 'long' and 'lat'
+2) turn date into an int
+3) turn yr renovated into an int
+4) make comparisson columns
+5) fill nan with zeros
+6) turn objects into ints
 
-Recall that the non-technical presentation is a slide deck presenting your analysis to ***business stakeholders***, and should be presented live as well as submitted in PDF form on Canvas.
+homes.drop(columns=['id', 'lat', 'long'], inplace=True)
 
-We recommend that you follow this structure, although the slide titles should be specific to your project:
+# convert the sell date object to a datetime object
+homes['date'] = pd.to_datetime(homes['date'])
 
-1. Beginning
-    - Overview
-    - Business and Data Understanding
-2. Middle
-    - **Modeling**
-    - **Regression Results**
-3. End
-    - Recommendations
-    - Next Steps
-    - Thank you
 
-Make sure that your discussion of modeling and regression results is geared towards a non-technical audience! Assume that their prior knowledge of regression modeling is minimal. You don't need to explain how linear regression works, but you should explain why linear regression is useful for the problem context. Make sure you translate any metrics or coefficients into their plain language implications.
+# make a new column of just the years the house was sold, as an integer 
+homes['sell_yr'] = homes['date'].dt.year.astype(int)
 
-The graded elements for the non-technical presentation are the same as in [Phase 1](https://github.com/learn-co-curriculum/dsc-phase-1-project-v2-3#deliverables).
 
-### Jupyter Notebook
+# i'm only making a column that represents the difference in years, as the data set
+# only has the years of when the house was build, and not the exact date
 
-Recall that the Jupyter Notebook is a notebook that uses Python and Markdown to present your analysis to a ***data science audience***. You will submit the notebook in PDF format on Canvas as well as in `.ipynb` format in your GitHub repository.
+homes['sell_yr']
 
-The graded elements for the Jupyter Notebook are:
+there doesn't appear to be any obvious similarities between the houses pre-sold
 
-* Business Understanding
-* Data Understanding
-* Data Preparation
-* **Modeling**
-* **Regression Results**
-* Code Quality
+# fill N/A values with zeros, and convert to int, just as a precaution
+homes['yr_renovated'] = homes['yr_renovated'].fillna(0).astype(int)
 
-### GitHub Repository
+homes['yr_renovated']
 
-Recall that the GitHub repository is the cloud-hosted directory containing all of your project files as well as their version history.
+### lets inspect some of the other columns
+spcifically the categorial ones
 
-The requirements are the same as in [Phase 1](https://github.com/learn-co-curriculum/dsc-phase-1-project-v2-3#github-repository), except for the required sections in the `README.md`.
+some categories look ordinal. let's make them numbers (and int64 type)
 
-For this project, the `README.md` file should contain:
+Morgan gave me the idea to split Zipcodes by inside seattle and outside, and to treat it as a boolean variable
 
-* Overview
-* Business and Data Understanding
-  * Explain your stakeholder audience here
-* **Modeling**
-* **Regression Results**
-* Conclusion
+besides for waterfront, which is binary, the rest appear to be ordinal.
 
-Just like in Phase 1, the `README.md` file should be the bridge between your non technical presentation and the Jupyter Notebook. It should not contain the code used to develop your analysis, but should provide a more in-depth explanation of your methodology and analysis than what is described in your presentation slides.
+view, grade and condition appear to have more points to their variables. 
 
-## Grading
+condition seems like it will be most useful for our problem, as the houses we want to be dealing with will be built already. but i intend to use all three after label encoding
 
-***To pass this project, you must pass each project rubric objective.*** The project rubric objectives for Phase 2 are:
+# sort dataframe by price, which is our dependent variable
+homes.sort_values(by='price', inplace=True)
 
-1. Attention to Detail
-2. Statistical Communication
-3. Data Preparation Fundamentals
-4. Linear Modeling
 
-### Attention to Detail
+# Make a Simple linear regression model as a baseline
 
-Just like in Phase 1, this rubric objective is based on your completion of checklist items. ***In Phase 2, you need to complete 70% (7 out of 10) or more of the checklist elements in order to pass the Attention to Detail objective.***
+then check data for three assumptions. linearity, normality, homoscedasticity
 
-**NOTE THAT THE PASSING BAR IS HIGHER IN PHASE 2 THAN IT WAS IN PHASE 1!**
 
-The standard will increase with each Phase, until you will be required to complete all elements to pass Phase 5 (Capstone).
+# make a correlation matrix (heat map)
 
-#### Exceeds Objective
+lets make a correlation matrix of the data to see which variables might have more potential correlation
 
-80% or more of the project checklist items are complete
+import seaborn as sns
 
-#### Meets Objective (Passing Bar)
+plt.figure(figsize=(16, 8))
+sns.heatmap(homes.corr(), annot=True)
+plt.show()
 
-70% of the project checklist items are complete
+# the square feet above variable seems to be valuable
 
-#### Approaching Objective
+let's make a formula of X and Y being `sqft_above`, and `price`
 
-60% of the project checklist items are complete
+# the formula
+form = 'price~sqft_above'
 
-#### Does Not Meet Objective
+#the model
+pri_sqft_model = ols(formula=form, data=homes).fit()
 
-50% or fewer of the project checklist items are complete
+# check the summery
+pri_sqft_model.summary()
 
-### Statistical Communication
+#### the R squared value is weak. how can we improve this model?
+there is a low P value, so there is some significance, but the R squared value tells me that the model isn't good enough to account for more than 36% of the data
 
-Recall that communication is one of the key data science "soft skills". In Phase 2, we are specifically focused on Statistical Communication. We define Statistical Communication as:
+# scatter plot to check for linearity
+plt.scatter(homes['price'], homes['sqft_above'])
+plt.title("Linearity check")
+plt.xlabel('price')
+plt.ylabel('square feet (besides basement)')
+plt.show()
 
-> Communicating **results of statistical analyses** to diverse audiences via writing and live presentation
+## not linear :-<
 
-Note that this is the same as in Phase 1, except we are replacing "basic data analysis" with "statistical analyses".
+let's check for normality and homoscedasticity
 
-High-quality Statistical Communication includes rationale, results, limitations, and recommendations:
+homes['price'].hist()
 
-* **Rationale:** Explaining why you are using statistical analyses rather than basic data analysis
-  * For example, why are you using regression coefficients rather than just a graph?
-  * What about the problem or data is suitable for this form of analysis?
-  * For a data science audience, this includes your reasoning for the changes you applied while iterating between models.
-* **Results:** Describing the overall model metrics and feature coefficients
-  * You need at least one overall model metric (e.g. r-squared or RMSE) and at least two feature coefficients.
-  * For a business audience, make sure you connect any metrics to real-world implications. You do not need to get into the details of how linear regression works.
-  * For a data science audience, you don't need to explain what a metric is, but make sure you explain why you chose that particular one.
-* **Limitations:** Identifying the limitations and/or uncertainty present in your analysis
-  * This could include p-values/alpha values, confidence intervals, assumptions of linear regression, missing data, etc.
-  * In general, this should be more in-depth for a data science audience and more surface-level for a business audience.
-* **Recommendations:** Interpreting the model results and limitations in the context of the business problem
-  * What should stakeholders _do_ with this information?
+#### not normal. but what if we chop off the outliers?
 
-#### Exceeds Objective
 
-Communicates the rationale, results, limitations, and specific recommendations of statistical analyses
+***slightly*** more normal
 
-> See above for extended explanations of these terms.
+there appears to be a few outliers, that are making our model less normal.
 
-#### Meets Objective (Passing Bar)
+2.5M seems like an okay cuttoff
 
-Successfully communicates the results of statistical analyses without any major errors
+let's cut off the outliers and make a new DataFrame to use
 
-> The minimum requirement is to communicate the _results_, meaning at least one overall model metric (e.g. r-squared or RMSE) as well as at least two feature coefficients. See the Approaching Objective section for an explanation of what a "major error" means.
+no_outliers = homes.loc[homes['price'] < 2500000]
 
-#### Approaching Objective
+print(len(homes) - len(no_outliers))
 
-Communicates the results of statistical analyses with at least one major error
+102 out of 21,596 seems an okay amount to chop off
 
-> A major error means that some aspect of your explanation is fundamentally incorrect. For example, if a feature coefficient is negative and you say that an increase in that feature results in an increase of the target, that would be a major error. Another example would be if you say that the feature with the highest coefficient is the "most statistically significant" while ignoring the p-value. One more example would be reporting a coefficient that is not statistically significant, rather than saying "no statistically significant linear relationship was found"
+# let's re run the scatter plot without the outliers
 
-> "**If a coefficient's t-statistic is not significant, don't interpret it at all.** You can't be sure that the value of the corresponding parameter in the underlying regression model isn't really zero." _DeVeaux, Velleman, and Bock (2012), Stats: Data and Models, 3rd edition, pg. 801_. Check out [this website](https://web.ma.utexas.edu/users/mks/statmistakes/TOC.html) for extensive additional examples of mistakes using statistics.
 
-> The easiest way to avoid making a major error is to have someone double-check your work. Reach out to peers on Slack and ask them to confirm whether your interpretation makes sense!
 
-#### Does Not Meet Objective
+## looks a bit better
 
-Does not communicate the results of statistical analyses
+let's check the DataFrame without the outliers to see if any variable has more of a linear relationship
+another scatter matrix, and heatmap
 
-> It is not sufficient to just display the entire results summary. You need to pull out at least one overall model metric (e.g. r-squared, RMSE) and at least two feature coefficients, and explain what those numbers mean.
+pd.plotting.scatter_matrix(no_outliers,figsize  = [20, 20]);
+plt.show()
 
-### Data Preparation Fundamentals
+plt.figure(figsize=(16, 8))
+sns.heatmap(no_outliers.corr(), annot=True)
+plt.show()
 
-We define this objective as:
+#### let's try it again with something more homoscedastic
 
-> Applying appropriate **preprocessing** and feature engineering steps to tabular data in preparation for statistical modeling
+lets try a model with `yr_built` even though it's semi categorical
 
-The two most important components of preprocessing for the Phase 2 project are:
+plt.scatter(no_outliers['price'], no_outliers['yr_built'])
+plt.title("Linearity check")
+plt.xlabel('price')
+plt.ylabel('Year built in')
+plt.show()
 
-* **Handling Missing Values:** Missing values may be present in the features you want to use, either encoded as `NaN` or as some other value such as `"?"`. Before you can build a linear regression model, make sure you identify and address any missing values using techniques such as dropping or replacing data.
-* **Handling Non-Numeric Data:** A linear regression model needs all of the features to be numeric, not categorical. For this project, ***be sure to pick at least one non-numeric feature and try including it in a model.*** You can identify that a feature is currently non-numeric if the type is `object` when you run `.info()` on your dataframe. Once you have identified the non-numeric features, address them using techniques such as ordinal or one-hot (dummy) encoding.
+formula_1 = 'price~yr_built'
 
-There is no single correct way to handle either of these situations! Use your best judgement to decide what to do, and be sure to explain your rationale in the Markdown of your notebook.
+model_1 = ols(formula=formula_1, data=homes).fit()
 
-Feature engineering is encouraged but not required for this project.
+model_1.summary()
 
-#### Exceeds Objective
+## .03 R squared value
 
-Goes above and beyond with data preparation, such as feature engineering or merging in outside datasets
+this model is worse. let's go back to `square feet`
 
-> One example of feature engineering could be using the `date` feature to create a new feature called `season`, which represents whether the home was sold in Spring, Summer, Fall, or Winter.
+Square feet of living space is the highest corellating factor to price, followed by square feet besides the basement, and amount of bathrooms.
 
-> One example of merging in outside datasets could be finding data based on ZIP Code, such as household income or walkability, and joining that data with the provided CSV.
+the amount of bathrooms may be an effect of having more square feet. if it's an effect of multicolinearity, we will have to remove it
 
-#### Meets Objective (Passing Bar)
 
-Successfully prepares data for modeling, including converting at least one non-numeric feature into ordinal or binary data and handling missing data as needed
+## let's try first again, but without the outliers
 
-> As a reminder, you can identify the non-numeric features by calling `.info()` on the dataframe and looking for type `object`.
+form = 'price~sqft_above'
 
-> Your final model does not necessarily need to include any features that were originally non-numeric, but you need to demonstrate your ability to handle this type of data.
+price_sqft_model = ols(formula=form, data=no_outliers).fit()
 
-#### Approaching Objective
+price_sqft_model.summary()
 
-Prepares some data successfully, but is unable to utilize non-numeric data
+### R squared still sucks. 
 
-> If you simply subset the dataframe to only columns with type `int64` or `float64`, your model will run, but you will not pass this objective.
+this model only accounts for 35% of the data, worse than 36, but not that bad
 
-#### Does Not Meet Objective
+let's move on to multi linear regression
 
-Does not prepare data for modeling
+## Label encoding categorical variables
 
-### Linear Modeling
+going to label encode the columns in place, not OHE. the below code is based on examples that Morgan gave me
 
-According to [Kaggle's 2020 State of Data Science and Machine Learning Survey](https://www.kaggle.com/kaggle-survey-2020), linear and logistic regression are the most popular machine learning algorithms, used by 83.7% of data scientists. They are small, fast models compared to some of the models you will learn later, but have limitations in the kinds of relationships they are able to learn.
+from sklearn.preprocessing import LabelEncoder
+laibel = LabelEncoder()
 
-In this project you are required to use linear regression as the primary statistical analysis, although you are free to use additional statistical techniques as appropriate.
+no_outliers['zipcode'] = laibel.fit_transform(no_outliers['zipcode'])
+no_outliers['view'] = laibel.fit_transform(no_outliers['view'])
+no_outliers['condition'] = laibel.fit_transform(no_outliers['condition'])
+no_outliers['bathrooms'] = laibel.fit_transform(no_outliers['bathrooms'])
+no_outliers['bedrooms'] = laibel.fit_transform(no_outliers['bedrooms'])
+no_outliers['floors'] = laibel.fit_transform(no_outliers['floors'])
+no_outliers['waterfront'] = laibel.fit_transform(no_outliers['waterfront'])
 
-#### Exceeds Objective
+no_outliers.head()
 
-Goes above and beyond in the modeling process, such as recursive feature selection
+# drop columns i don't intend to use
 
-#### Meets Objective (Passing Bar)
+no_outliers.drop(['date'], axis=1, inplace=True)
 
-Successfully builds a baseline model as well as at least one iterated model, and correctly extracts insights from a final model without any major errors
+y_var = 'price'
+x_vars = no_outliers.drop('price', axis=1)
+all_columns = '+'.join(x_vars.columns)
+multi_formula_1 = y_var + '~' + all_columns
 
-> We are looking for you to (1) create a baseline model, (2) iterate on that model, making adjustments that are supported by regression theory or by descriptive analysis of the data, and (3) select a final model and report on its metrics and coefficients
+model_ver_1 = ols(formula=multi_formula_1, data=no_outliers).fit()
+model_ver_1.summary()
 
-> Ideally you would include written justifications for each model iteration, but at minimum the iterations must be _justifiable_
+## floors has a high P value, dropping it
 
-> For an explanation of "major errors", see the description below
+no_outliers.drop(['floors'], axis=1, inplace=True)
 
-#### Approaching Objective
+model_ver_1.fvalue
 
-Builds multiple models with at least one major error
+### change pandas options, because i want to see all rows in Jupyter
 
-> The number one major error to avoid is including the target as one of your features. For example, if the target is `price` you should NOT make a "price per square foot" feature, because that feature would not be available if you didn't already know the price.
+pd.set_option('display.max_rows', None)
 
-> Other examples of major errors include: using a target other than `price`, attempting only simple linear regression (not multiple linear regression), dropping multiple one-hot encoded columns without explaining the resulting baseline, or using a unique identifier (`id` in this dataset) as a feature.
+model_ver_1.params
 
-#### Does Not Meet Objective
+## bathrooms... again 
 
-Does not build multiple linear regression models
+this model acounts for %67 percent of the data though
 
-## Getting Started
+maybe i should do some log transformations 
 
-Please start by reviewing the contents of this project description. If you have any questions, please ask your instructor ASAP.
+pd.set_option('display.max_rows', 10)
 
-Next, you will need to complete the [***Project Proposal***](#project_proposal) which must be reviewed by your instructor before you can continue with the project.
+# get MAE to see how much error is in our model
+y_predic = model_ver_1.resid
+y = homes['price']
+mae_resid = np.mean(np.abs(y - y_predic))
+mae_resid
 
-Here are some suggestions for creating your GitHub repository:
+# and RMSE because i intend to make another model, since at least one variable has a P value that is too high
+# and several coeficients are very negative 
 
-1. Fork the [Phase 2 Project Repository](https://github.com/learn-co-curriculum/dsc-phase-2-project-v2-3), clone it locally, and work in the `student.ipynb` file. Make sure to also add and commit a PDF of your presentation to your repository with a file name of `presentation.pdf`.
-2. Or, create a new repository from scratch by going to [github.com/new](https://github.com/new) and copying the data files from the Phase 2 Project Repository into your new repository.
-   - Recall that you can refer to the [Phase 1 Project Template](https://github.com/learn-co-curriculum/dsc-project-template) as an example structure
-   - This option will result in the most professional-looking portfolio repository, but can be more complicated to use. So if you are getting stuck with this option, try forking the project repository instead
+model_ver_1.mse_resid
 
-## Summary
+rmse_residuals = np.sqrt(model_ver_1.mse_resid)
+rmse_residuals
 
-This is your first modeling project! Take what you have learned in Phase 2 to create a project with a more sophisticated analysis than you completed in Phase 1. You will build on these skills as we move into the predictive machine learning mindset in Phase 3. You've got this!
+print(rmse_residuals - mae_resid)
+
+resids = model_ver_1.resid
+
+sns.scatterplot(y_predic,resids)
+
+sns.distplot(resids,kde=True)
+
+from scipy import stats
+
+fig = sm.graphics.qqplot(resids, dist=stats.norm, line='45', fit=True)
+fig.show()
+
+## check for autocorrelation
+
+using a method i got from Morgan
+
+from statsmodels.stats.stattools import durbin_watson
+
+durbin_watson(resids)
+
+# log transformations and scaling
+
+everything looks pretty normal. not sure if log transformations are neccessary. feature sczaling is though, most of the variables with high coeficients have a vastly different scale from our dedpendent variable
+
+from sklearn import preprocessing
+
+standard_vars = preprocessing.StandardScaler().fit_transform(no_outliers)
+
+
+### let's make a new model with the scaled variables
+
+
+x_vars = homes_2.drop('price', axis=1)
+all_columns = '+'.join(x_vars.columns)
+formula_2 = y_var + '~' + all_columns
+multi_formula_1 = y_var + '~' + all_columns
+x_vars_int2 = sm.add_constant(x_vars)
+model_ver_2 = sms.OLS(homes_2['price'], x_vars_int2).fit()
+model_ver_2.summary()
+
+#### coeficients are scaled, a bit better R squared, and better for prediction with test-train ing
+
+
+
+## MUCH better
+the `model_ver_2` model accounts for 67% of the data. not perfect, but good enough to progress
+
+### let's try going back to our earlier model, but without the *floors* variable
+
+two_point_one = no_outliers.drop('price', axis=1)
+
+model_ver_2_1 = sms.OLS(no_outliers['price'], two_point_one).fit()
+model_ver_2_1.summary()
+
+### 91!!! that's crazy!!!
+
+how did i get such a high R squared value?!?!
+
+this isn't possible
+
+let's stick with the scaled model above
+
+homes_2.info()
+
+#using scikit learn now for the 'split_train_test' function
+
+from sklearn.linear_model import LinearRegression
+linreg = LinearRegression()
+predictors = homes_2.drop('price', axis=1)
+y = homes_2['price']
+linreg.fit(predictors, y)
+linreg.coef_
+
+#### and the intercept
+linreg.intercept_
+
+## that's pretty low
+
+let's drop variables that have decreasing coeficients, and see what our R squared value is
+
+predictors2 = homes_2.drop(columns=['view','yr_built','sqft_lot15'])
+model_ver_3 = sms.OLS(y, predictors2).fit()
+model_ver_3.summary()
+
+when i drop some variables with negative coeficients, others that were positive, are now negative
+
+and the R squared value is perfect, an impossibility.
+
+i will go back to using the second model
+
+for kicks, let's just drop `bathrooms` and see what we get
+
+predictors2_5 = homes_2.drop(columns=['bathrooms', 'sell_yr', 'yr_renovated', 'sqft_above', 'sqft_living15', 'sqft_lot15'])
+model_ver_3_5 = sms.OLS(y, predictors2_5).fit()
+model_ver_3_5.summary()
+
+Great P values on everything, but R squared is still too perfect
+
+model_ver_3_5.mse_resid
+
+# fit and transform (and make test and train data sets)
+
+
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+
+sc = StandardScaler()
+
+
+i will use the train and test data to gradually add features to the base model to see if any improvement has occured
+
+f_t_pred = sc.fit_transform(predictors)
+X_train, X_test, y_train, y_test = train_test_split(f_t_pred, y,random_state = 0,test_size=0.20)
+
+### get R squared score of training data
+
+from sklearn.metrics import r2_score
+
+
+split_regr = LinearRegression().fit(X_train,y_train)
+y_split_pred = split_regr.predict(X_train)
+r2_score(y_true=y_train,y_pred=y_split_pred)
+
+
+### this model is okay
+
+get y hat value to get the Mean Squared Error
+
+from sklearn.metrics import mean_squared_error
+
+# function to get mse of model
+
+def get_mse(X_t, X_te, y_t, y_te):
+    split_regr = LinearRegression().fit(X_t,y_t)
+    y_hat_train = split_regr.predict(X_t)
+    y_hat_test = split_regr.predict(X_te)
+
+    train_mse = mean_squared_error(y_t, y_hat_train)
+    test_mse = mean_squared_error(y_te, y_hat_test)
+    print('train ',train_mse, ' test ', test_mse)
+get_mse(X_train, X_test, y_train, y_test)
+
+# check for multicolinearity, and homoscedacity
+
+
+make sure the R squared values are good, and continually check if the model we are using is producing better results than before
+
+***BUT*** beware of over fitting, multicolinearity, confounding variables
+
+## check for Homoscedasticity 
+i hope...
+
+residuals = y_train.values-y_split_pred
+
+mixplot = sns.scatterplot(x=y_split_pred,y=residuals)
+mixplot = sns.lineplot([-2,5],[0,0],color='green')
+
+nope...
+
+but it still might be usable
+
+### and normality
+
+sns.distplot(residuals,kde=True)
+
+
+not that bad
+
+###  now to check for multicolinearity
+
+plt.figure(figsize=(10,10))
+sns.lineplot(y=y_split_pred,x=residuals,marker='x',color='orange')
+
+from sklearn.metrics import mean_absolute_error,mean_squared_error,r2_score
+
+y_hat_train = split_regr.predict(X_train)
+y_hat_test = split_regr.predict(X_test)
+
+print('Training MAE', mean_absolute_error(y_train, y_hat_train))
+print('Testing MAE', mean_absolute_error(y_test, y_hat_test))
+
+# describe what model is doing
+
+does it answer our business question? how does it answer it?
+
+it seems that the testing error is higher than the training error. this means that our model is useful.
+
+the coeficients for `sqft_living` , `sqft_lot` and `grade` being the highest, i would recomend a potential investor looking for
+a house in the seatle area that has a higher square footage of the lot and living room, if possible near the water.
+
+for every increase in grade, a %39 increase in price
+for every increase in square feet of living room, or general lot, a %20 increase each in price
+if the house is on the waterfront, expect a %10 increase in price
+and if the house is within the seatle area, expect a %20 increase in price
+additionally, if neighboring houses have larger living rooms, you can expect a %17 increase in price
+
+strangely, having more bathrooms consistently had correlation with a higher price. as a NYer, i am biased to think this is an important factor, but objectively, it is most probably due to larger, more expensive houses with more rooms, naturally having more bathrooms
