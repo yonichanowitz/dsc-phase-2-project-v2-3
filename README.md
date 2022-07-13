@@ -26,11 +26,11 @@ date is date sold at
 ### a few of the columns are objects. make them int64, or label encode them later
 especially sqft_basement
 
-homes['sqft_basement'].unique
+`homes['sqft_basement'].unique
 
 homes['sqft_basement'] = homes['sqft_basement'].str.replace('?', '0').astype(np.float64)
 
-homes['sqft_basement'].unique
+homes['sqft_basement'].unique`
 
 waterfront, view, condition, grade, yr_built, yr_renovated, and zipcode are **categorical**. i'm not sure which ones i will use, but i think i'll use LabelEncoding to make them usable
 
@@ -63,9 +63,9 @@ only has the years of when the house was build, and not the exact date
 there doesn't appear to be any obvious similarities between the houses pre-sold
 
 # fill N/A values with zeros, and convert to int, just as a precaution
-homes['yr_renovated'] = homes['yr_renovated'].fillna(0).astype(int)
+`homes['yr_renovated'] = homes['yr_renovated'].fillna(0).astype(int)
 
-homes['yr_renovated']
+homes['yr_renovated']`
 
 ### inspect categorical columns
 
@@ -80,7 +80,7 @@ view, grade and condition appear to have more points to their variables.
 condition seems like it will be most useful for our problem, as the houses we want to be dealing with will be built already. but i intend to use all three after label encoding
 
 # sort dataframe by price, which is our dependent variable
-homes.sort_values(by='price', inplace=True)
+`homes.sort_values(by='price', inplace=True)`
 
 
 # Make a Simple linear regression model as a baseline
