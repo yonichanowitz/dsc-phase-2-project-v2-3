@@ -26,11 +26,11 @@ date is date sold at
 ### a few of the columns are objects. make them int64, or label encode them later
 especially sqft_basement
 
-`homes['sqft_basement'].unique
+```homes['sqft_basement'].unique
 
 homes['sqft_basement'] = homes['sqft_basement'].str.replace('?', '0').astype(np.float64)
 
-homes['sqft_basement'].unique`
+homes['sqft_basement'].unique```
 
 waterfront, view, condition, grade, yr_built, yr_renovated, and zipcode are **categorical**. i'm not sure which ones i will use, but i think i'll use LabelEncoding to make them usable
 
