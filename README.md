@@ -20,16 +20,29 @@ let's see what the data says
 at least *two* of the columns have null values that need to be filled with some value, *six* are objects, which need to be made into numerical columns
 date is date sold at
 
+```
+import numpy as np
+import pandas as pd
+import statsmodels.api as sm
+from statsmodels.formula.api import ols
+import statsmodels.api as sms
+import statsmodels.stats.api as stat_api
+import statsmodels.formula.api as smf
+import scipy.stats as stats
+import matplotlib.pyplot as plt
+
+homes = pd.read_csv('data/kc_house_data.csv')
+```
+look at what are in each column
 
 # cleaning
 
 ### a few of the columns are objects. make them int64, or label encode them later
 especially sqft_basement
 
-```homes['sqft_basement'].unique
-
+```
+homes['sqft_basement'].unique
 homes['sqft_basement'] = homes['sqft_basement'].str.replace('?', '0').astype(np.float64)
-
 homes['sqft_basement'].unique
 ```
 
@@ -42,20 +55,21 @@ but it's too many. Morgan gave me the great idea of sepperating the zip codes by
 ### cleaning steps
 i will be dropping longitude and latitude
 'date' is date sold. i need two columns , one the time between year build and date sold, another the time between date renovated and date sold
-1) drop 'id' 'long' and 'lat'
-2) turn date into an int
-3) turn yr renovated into an int
-4) make comparisson columns
+1) drop `id`, `long` and `lat`
+2) turn `date` into an int type,
+3) make new column `sell_yr`, and drop `date`
+4) turn `yr_renovated` into an int type
 5) fill nan with zeros
 6) turn objects into ints
 
 `homes.drop(columns=['id', 'lat', 'long'], inplace=True)`
 
 ### convert the sell date object to a datetime object
+
 `homes['date'] = pd.to_datetime(homes['date'])`
 
-
 ### make a new column of just the years the house was sold, as an integer 
+
 `homes['sell_yr'] = homes['date'].dt.year.astype(int)`
 
 i'm only making a column that represents the difference in years, as the data set
@@ -63,25 +77,23 @@ only has the years of when the house was build, and not the exact date
 
 there doesn't appear to be any obvious similarities between the houses pre-sold
 
-# fill N/A values with zeros, and convert to int, just as a precaution
-```homes['yr_renovated'] = homes['yr_renovated'].fillna(0).astype(int)
+### fill N/A values with zeros, and convert to int, just as a precaution
 
+```
+homes['yr_renovated'] = homes['yr_renovated'].fillna(0).astype(int)
 homes['yr_renovated']
 ```
 
 ### inspect categorical columns
 
-some categories look ordinal. let's make them numbers (and int64 type)
-
+Some categories look ordinal. let's make them numbers (and int64 type)
 Morgan Jones gave me the idea to split Zipcodes by inside seattle and outside, and to treat it as a boolean variable
-
 besides for waterfront, which is binary, the rest appear to be ordinal.
-
 view, grade and condition appear to have more points to their variables. 
 
-condition seems like it will be most useful for our problem, as the houses we want to be dealing with will be built already. but i intend to use all three after label encoding
+Condition seems like it will be most useful for our problem, as the houses we want to be dealing with will be built already. but i intend to use all three after label encoding
 
-# sort dataframe by price, which is our dependent variable
+## sort dataframe by price, which is our dependent variable
 `homes.sort_values(by='price', inplace=True)`
 
 
@@ -89,8 +101,7 @@ condition seems like it will be most useful for our problem, as the houses we wa
 
 then check data for three assumptions. linearity, normality, homoscedasticity
 
-
-# Make a correlation matrix (heat map)
+## Make a correlation matrix (heat map)
 
 Make a correlation matrix of the data to see which variables might have more potential correlation
 
@@ -101,21 +112,20 @@ sns.heatmap(homes.corr(), annot=True)
 plt.show()
 ```
 
-
-# Make Model of Price per Square Feet above sea level
+## Make Model of Price per Square Feet above sea level
 
 let's make a formula of X and Y being `sqft_above`, and `price`
 
-```form = 'price~sqft_above'
-
+```
+form = 'price~sqft_above'
 pri_sqft_model = ols(formula=form, data=homes).fit()
 ```
 
-# check the summery
+## Check the summery
 `pri_sqft_model.summary()`
 
 
-# scatter plot to check for linearity
+## Scatter plot to check for linearity
 ```plt.scatter(homes['price'], homes['sqft_above'])
 plt.title("Linearity check")
 plt.xlabel('price')
@@ -123,7 +133,7 @@ plt.ylabel('square feet (besides basement)')
 plt.show()
 ```
 
-# Check for normality and homoscedasticity
+## Check for normality and homoscedasticity
 
 `homes['price'].hist()`
 
@@ -134,52 +144,28 @@ plt.show()
 
 let's cut off the outliers and make a new DataFrame to use
 
-`no_outliers = homes.loc[homes['price'] < 2500000]`
+```
+no_outliers = homes.loc[homes['price'] < 2500000]
 
-`print(len(homes) - len(no_outliers))`
+print(len(homes) - len(no_outliers))
+```
 
 102 out of 21,596 seems an okay amount to chop off
 
 
 ## check the DataFrame without the outliers to see if any variable has more of a linear relationship
-another scatter matrix, and heatmap
+another heatmap
 
-```pd.plotting.scatter_matrix(no_outliers,figsize  = [20, 20]);
-plt.show()
-
+```
 plt.figure(figsize=(16, 8))
 sns.heatmap(no_outliers.corr(), annot=True)
 plt.show()
 ```
 
-
-### Try a model with `yr_built` even though it's semi categorical
-
-```plt.scatter(no_outliers['price'], no_outliers['yr_built'])
-plt.title("Linearity check")
-plt.xlabel('price')
-plt.ylabel('Year built in')
-plt.show()
-
-formula_1 = 'price~yr_built'
-
-model_1 = ols(formula=formula_1, data=homes).fit()
-
-model_1.summary()
-```
-
-0.03 R squared value
-
-this model is worse. let's go back to `square feet`
-
-Square feet of living space is the highest corellating factor to price, followed by square feet besides the basement, and amount of bathrooms.
-
-the amount of bathrooms may be an effect of having more square feet. if it's an effect of multicolinearity, we will have to remove it
-
-
 ## Same model as above, with new DataFrame
 
-```form = 'price~sqft_above'
+```
+form = 'price~sqft_above'
 
 price_sqft_model = ols(formula=form, data=no_outliers).fit()
 
@@ -208,10 +194,6 @@ no_outliers['waterfront'] = laibel.fit_transform(no_outliers['waterfront'])
 no_outliers.head()
 ```
 
-# drop columns i don't intend to use
-`no_outliers.drop(['date'], axis=1, inplace=True)`
-
-
 # Make multi variable regression model
 ```y_var = 'price'
 x_vars = no_outliers.drop('price', axis=1)
@@ -222,26 +204,19 @@ model_ver_1 = ols(formula=multi_formula_1, data=no_outliers).fit()
 model_ver_1.summary()
 ```
 
-## 'floors' variable has a high P value, dropping it
-
-```no_outliers.drop(['floors'], axis=1, inplace=True)
-
-model_ver_1.fvalue
-```
-
 this model acounts for %67 percent of the data though
 
 maybe i should do some log transformations 
 
-# get MAE to see how much error is in our model
+## Get MAE to see how much error is in our model
 ```y_predic = model_ver_1.resid
 y = homes['price']
 mae_resid = np.mean(np.abs(y - y_predic))
 mae_resid
 ```
 
-# and RMSE because i intend to make another model
-since at least one variable has a P value that is too high
+## And RMSE because i intend to make another model
+since at least one variable has a **P** value that is too high
 and several coeficients are very negative 
 
 ```model_ver_1.mse_resid
@@ -272,7 +247,7 @@ using a method i got from Morgan
 durbin_watson(resids)
 ```
 
-# log transformations and scaling
+# Log transformations and scaling
 
 everything looks pretty normal. not sure if log transformations are neccessary. feature sczaling is though, most of the variables with high coeficients have a vastly different scale from our dedpendent variable
 
@@ -282,7 +257,7 @@ standard_vars = preprocessing.StandardScaler().fit_transform(no_outliers)
 ```
 
 
-# Make a new model with the scaled variables
+## Make a new model with the scaled variables
 
 ```x_vars = homes_2.drop('price', axis=1)
 all_columns = '+'.join(x_vars.columns)
@@ -295,15 +270,12 @@ model_ver_2.summary()
 
 ### coeficients are scaled, a bit better R squared, and better for prediction with test-train ing
 
-
-
-## MUCH better
 the `model_ver_2` model accounts for 67% of the data. not perfect, but good enough to progress
 
 # Use scikit-learn now for the 'split_train_test' function
 
-```from sklearn.linear_model import LinearRegression
-
+```
+from sklearn.linear_model import LinearRegression
 linreg = LinearRegression()
 predictors = homes_2.drop('price', axis=1)
 y = homes_2['price']
@@ -312,27 +284,25 @@ linreg.coef_
 ```
 
 
+### Drop variables that have decreasing coeficients, and see what our R squared value is
 
-# Drop variables that have decreasing coeficients, and see what our R squared value is
-
-```predictors2 = homes_2.drop(columns=['view','yr_built','sqft_lot15'])
+```
+predictors2 = homes_2.drop(columns=['price','bedrooms', 'floors','yr_built','sqft_lot15', 'view_1', 'view_3', 'zip_0', 'wtrfrnt_NO'])
 model_ver_3 = sms.OLS(y, predictors2).fit()
 model_ver_3.summary()
 ```
 
 when i drop some variables with negative coeficients, others that were positive, are now negative
 
-and the R squared value is perfect, an impossibility.
-
 i will go back to using the second model
 
-for kicks, let's just drop `bathrooms` and see what we get
+
+# Fit and transform 
+#### (and make test and train data sets)
 
 
-# fit and transform (and make test and train data sets)
-
-
-```from sklearn.preprocessing import StandardScaler
+```
+from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 
 sc = StandardScaler()
@@ -340,14 +310,17 @@ sc = StandardScaler()
 
 i will use the train and test data to gradually add features to the base model to see if any improvement has occured
 
-```f_t_pred = sc.fit_transform(predictors)
+```
+f_t_pred = sc.fit_transform(predictors)
 X_train, X_test, y_train, y_test = train_test_split(f_t_pred, y,random_state = 0,test_size=0.20)
 ```
 
 ### get R squared score of training data
 
-```from sklearn.metrics import r2_score
+```
+# import metrics functions i intend to use
 
+from sklearn.metrics import mean_absolute_error,mean_squared_error,r2_score
 
 split_regr = LinearRegression().fit(X_train,y_train)
 y_split_pred = split_regr.predict(X_train)
@@ -359,68 +332,69 @@ r2_score(y_true=y_train,y_pred=y_split_pred)
 
 get y hat value to get the Mean Squared Error
 
-`from sklearn.metrics import mean_squared_error`
+```
+# Get train and test mse of model, to compare for accuracy
 
-## function to get mse of model
+def split_mse(xtra, xtes, ytra, ytes):
+    split_regr = LinearRegression().fit(xtra, ytra)
+    y_hat_train = split_regr.predict(xtra)
+    y_hat_test = split_regr.predict(xtes)
 
-```def get_mse(X_t, X_te, y_t, y_te):
-    split_regr = LinearRegression().fit(X_t,y_t)
-    y_hat_train = split_regr.predict(X_t)
-    y_hat_test = split_regr.predict(X_te)
-
-    train_mse = mean_squared_error(y_t, y_hat_train)
-    test_mse = mean_squared_error(y_te, y_hat_test)
+    train_mse = mean_squared_error(ytra, y_hat_train)
+    test_mse = mean_squared_error(ytes, y_hat_test)
+    
     print('train ',train_mse, ' test ', test_mse)
-get_mse(X_train, X_test, y_train, y_test)
+    
+split_mse(X_train, X_test, y_train, y_test)
 ```
 
-# check for multicolinearity, and homoscedacity
+# Check for multicolinearity, and homoscedacity
 
 
-make sure the R squared values are good, and continually check if the model we are using is producing better results than before
+## Homoscedasticity 
 
-***BUT*** beware of over fitting, multicolinearity, confounding variables
+```
+residuals = y_train.values - y_split_pred
 
-## check for Homoscedasticity 
-
-```residuals = y_train.values-y_split_pred
-
-mixplot = sns.scatterplot(x=y_split_pred,y=residuals)
-mixplot = sns.lineplot([-2,5],[0,0],color='green')
+mixplot = sns.scatterplot(x=y_split_pred, y=residuals)
+mixplot = sns.lineplot(x=[-2,5], y=[0,0], color='green')
 ```
 
-## and normality
+## Normality
 
-`sns.distplot(residuals,kde=True)`
+```
+sns.histplot(residuals, bins=30, kde=True)
+```
 
+###  Multicolinearity
 
-###  now to check for multicolinearity
+```
+# VIF checking idea from this article:
+# https://towardsdatascience.com/everything-you-need-to-know-about-multicollinearity-2f21f082d6dc
 
-```plt.figure(figsize=(10,10))
-sns.lineplot(y=y_split_pred,x=residuals,marker='x',color='orange')
-
-from sklearn.metrics import mean_absolute_error,mean_squared_error,r2_score
-
-y_hat_train = split_regr.predict(X_train)
-y_hat_test = split_regr.predict(X_test)
-
-print('Training MAE', mean_absolute_error(y_train, y_hat_train))
-print('Testing MAE', mean_absolute_error(y_test, y_hat_test))
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+not_categorical = ['bedrooms', 'bathrooms', 'sqft_living', 'floors', 'condition', 'grade',
+       'sqft_above', 'sqft_basement', 'yr_built', 'yr_renovated',
+       'sqft_living15', 'sqft_lot15', 'sell_yr',]
+pred_to_check = predictors[not_categorical]
+vif_data = pd.DataFrame()
+vif_data['Col_Names'] = not_categorical
+vif_data["VIF"] = [variance_inflation_factor(pred_to_check.values, i) for i in range(len(pred_to_check.columns))]
 ```
 
 # Takeaway:
 
-does it answer our business question? how does it answer it?
+a homeowner, or investor who is buying a house in Seattle, with features in this data set, acn only really control 3 things:
 
-it seems that the testing error is higher than the training error. this means that our model is useful.
+1) year renovated, which affects 2) grade and 3) condition
 
-the coeficients for `sqft_living` , `sqft_lot` and `grade` being the highest, i would recomend a potential investor looking for
-a house in the seatle area that has a higher square footage of the lot and living room, if possible near the water.
+After renovations, Fraiser can expect a \\$64 increase, per year after 1934 (\\$5632) or the year it was last made/worked on
 
-for every increase in grade, a %39 increase in price
-for every increase in square feet of living room, or general lot, a %20 increase each in price
-if the house is on the waterfront, expect a %10 increase in price
-and if the house is within the seatle area, expect a %20 increase in price
-additionally, if neighboring houses have larger living rooms, you can expect a %17 increase in price
+repaint, change the roofing, plumbing, heating and wiring to be up to code, will add a minimum  \\$88,000 to the value of the house
+use high quality building materials and they can expect a minimum \\$59,000 raise in value of the house
 
-strangely, having more bathrooms consistently had correlation with a higher price. as a NYer, i am biased to think this is an important factor, but objectively, it is most probably due to larger, more expensive houses with more rooms, naturally having more bathrooms
+grade 5 houses, which are described as "Low construction costs and workmanship. Small, simple design." have a mean cost of \\$542,987. With improvements of one grade, the price will be raised to a mean of $773,738. With high quality materials, the mean sell price is \\$1,072,347
+
+with the average price of houses at \\$540,296, investing \\$150k - \\$200k, total cost of house is about \\$700k, can be sold for at least \\$1m for a \\$300k profit
+
+now that i think about it, if someone wanted to flip a house in Seattle, they should look for a warn/run down, or old house in central Seattle near the water, with as large squre footage as they can find, and invest another \\$150,000 in renovating it. they are guaranteed to make minimum \\$2,000 profit, potentially \\$300,000 profitt
