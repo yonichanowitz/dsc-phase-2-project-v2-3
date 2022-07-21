@@ -388,13 +388,13 @@ a homeowner, or investor who is buying a house in Seattle, with features in this
 
 1) year renovated, which affects 2) grade and 3) condition
 
-After renovations, Fraiser can expect a \\$64 increase, per year after 1934 (\\$5632) or the year it was last made/worked on
+After renovations, Fraiser can expect a \$64 increase, per year after 1934 (\$5632) or the year it was last made/worked on
 
-repaint, change the roofing, plumbing, heating and wiring to be up to code, will add a minimum  \\$88,000 to the value of the house
-use high quality building materials and they can expect a minimum \\$59,000 raise in value of the house
+repaint, change the roofing, plumbing, heating and wiring to be up to code, will add a minimum  \$88,000 to the value of the house
+use high quality building materials and they can expect a minimum \$59,000 raise in value of the house
 
-grade 5 houses, which are described as "Low construction costs and workmanship. Small, simple design." have a mean cost of \\$542,987. With improvements of one grade, the price will be raised to a mean of $773,738. With high quality materials, the mean sell price is \\$1,072,347
+grade 5 houses, which are described as "Low construction costs and workmanship. Small, simple design." have a mean cost of \$542,987. With improvements of one grade, the price will be raised to a mean of \$773,738. With high quality materials, the mean sell price is \$1,072,347
 
-with the average price of houses at \\$540,296, investing \\$150k - \\$200k, total cost of house is about \\$700k, can be sold for at least \\$1m for a \\$300k profit
+with the average price of houses at \$540,296, investing \$150k - \$200k, total cost of house is about \$700k, can be sold for at least \$1m for a \$300k profit
 
-now that i think about it, if someone wanted to flip a house in Seattle, they should look for a warn/run down, or old house in central Seattle near the water, with as large squre footage as they can find, and invest another \\$150,000 in renovating it. they are guaranteed to make minimum \\$2,000 profit, potentially \\$300,000 profitt
+now that i think about it, if someone wanted to flip a house in Seattle, they should look for a warn/run down, or old house in central Seattle near the water, with as large squre footage as they can find, and invest another \$150,000 in renovating it. they are guaranteed to make minimum \$2,000 profit, potentially \$300,000 profitt
